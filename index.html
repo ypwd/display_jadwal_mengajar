@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Informasi Jadwal Mengajar Guru</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:'Inter',Arial,sans-serif;background:#071a35;color:#12233d}
+.app{height:100vh;display:flex;flex-direction:column}
+.top{height:108px;flex:0 0 108px;display:grid;grid-template-columns:1.15fr 1fr .55fr;align-items:center;gap:20px;padding:10px 22px;color:#fff;background:linear-gradient(100deg,#06152d,#0c2d58,#06152d);border-bottom:3px solid #d7ad45}
+.school{display:flex;align-items:center;gap:13px;min-width:0}.logo{width:72px;height:72px;object-fit:contain;border-radius:12px;background:#fff;padding:3px;border:2px solid #d7ad45}
+.school-name{font-size:clamp(20px,2vw,34px);font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tagline{margin-top:5px;font-size:11px;letter-spacing:2.5px;color:#e8c866;font-weight:700}
+.title{text-align:center}.title h1{margin:0;font-size:clamp(22px,2.4vw,38px);line-height:1.05;text-transform:uppercase;font-weight:800;letter-spacing:.3px}.title h1 span{color:#e8c866}.title p{margin:6px 0 0;color:#c7d9ef;font-size:13px;font-weight:700;letter-spacing:.3px}
+.clock{text-align:right}.clock-time{font-size:clamp(27px,3vw,46px);font-weight:800;letter-spacing:2px}.clock-date{margin-top:3px;color:#e8c866;font-size:12px;font-weight:600}
+.content{position:relative;flex:1;min-height:0;padding:10px 12px 8px}.board{position:relative;width:100%;height:100%;overflow:hidden;border-radius:15px;background:#f5f8fc;border:2px solid #d3dce7;box-shadow:0 8px 25px rgba(0,0,0,.35)}
+.fixed-head{position:absolute;z-index:10;top:0;left:0;right:0;height:72px;overflow:hidden;background:#0b254a}.fixed-head table,.data-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.fixed-head th{height:72px;padding:5px;color:#fff;background:linear-gradient(#16406f,#0b254a);border-right:1px solid #57718f;font-size:11px;font-weight:700;letter-spacing:.2px}.fixed-head th:first-child,.data-table td:first-child{width:150px}.fixed-head th:nth-child(2),.data-table td:nth-child(2){width:70px}.fixed-head th:nth-child(3),.data-table td:nth-child(3){width:145px}
+.session-title{font-size:12px;font-weight:800;letter-spacing:.2px}.session-time{display:block;margin-top:5px;color:#d6e5f7;font-size:9px;font-weight:500}
+.scroll-area{position:absolute;top:72px;bottom:0;left:0;right:0;overflow:hidden}.track{will-change:transform}
+.data-table td{height:102px;padding:6px;text-align:center;vertical-align:middle;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1}
+.data-table td:first-child{text-align:left;padding-left:12px}.data-table td:nth-child(3){text-align:left}
+.teacher-name{font-size:14px;font-weight:800;letter-spacing:.2px;text-transform:uppercase}.teacher-photo{width:52px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #fff;background:#dfe7f0}.no-photo{width:52px;height:72px;margin:auto;display:grid;place-items:center;border-radius:8px;background:#dfe7f0;color:#6d7d90;font-size:25px}
+.subject{font-size:12px;font-weight:700;letter-spacing:.1px}.lesson{font-weight:700;font-size:12px;letter-spacing:.1px}.room{margin-top:5px;font-size:10px;color:#53677e;font-weight:600}.empty{color:#8492a3;font-size:20px;font-weight:600}
+.data-table tbody tr:nth-child(8n+1) td{background:#edf4ff}.data-table tbody tr:nth-child(8n+2) td{background:#eff9f1}.data-table tbody tr:nth-child(8n+3) td{background:#fff7e9}.data-table tbody tr:nth-child(8n+4) td{background:#f5f0ff}
+.data-table tbody tr:nth-child(8n+5) td{background:#edf9fb}.data-table tbody tr:nth-child(8n+6) td{background:#fff0f3}.data-table tbody tr:nth-child(8n+7) td{background:#f2f6fa}.data-table tbody tr:nth-child(8n) td{background:#f5fbf8}
+.footer{height:46px;flex:0 0 46px;display:grid;grid-template-columns:180px 1fr 210px;align-items:center;gap:12px;padding:0 18px;color:#fff;background:#06172e;border-top:1px solid #285f97}
+.footer-badge{padding:7px 10px;text-align:center;border-radius:7px;background:#123c6d;font-size:11px;font-weight:700}.footer-message{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d9e6f5;font-size:11px;font-weight:500}.footer-update{text-align:right;color:#9db9d8;font-size:9px;font-weight:500}.footer-update strong{display:block;color:#fff;font-size:11px;font-weight:700}
+@media(max-width:1100px){.top{grid-template-columns:1fr .8fr}.title{display:none}.data-table td{height:90px}.teacher-name{font-size:14px}}
+
+/* ===== MERGE KELAS + RUANG ===== */
+.schedule-cell{
+  padding:6px 8px !important;
+  text-align:center !important;
+  vertical-align:middle !important;
+}
+.merged-schedule{text-align:center !important;vertical-align:middle !important}
+.merged-class{
+  width:100%;
+  min-height:70px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.merged-class .lesson{
+  font-size:12px;
+  font-weight:800;
+  line-height:1.25;
+}
+.merged-class .room{
+  margin-top:5px;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.2;
+}
+.schedule-empty,.multi-schedule{
+  text-align:center !important;
+  vertical-align:middle !important;
+}
+.schedule-gap{height:5px}
+.data-table tbody tr:nth-child(n) td.schedule-cell{background:inherit}
+
+
+/* ===== PENYESUAIAN TAMPILAN ===== */
+.title .hari,
+.title .day,
+.title .day-info,
+.title .hari-info,
+.title .tanggal-hari{
+  display:none !important;
+}
+.teacher-name{
+  font-size:14px !important;
+  line-height:1.2 !important;
+}
+
+
+/* Hari di area judul tengah disembunyikan.
+   Hari/tanggal di bawah jam digital kanan tetap tampil. */
+.title .hari,
+.title .day,
+.title .day-info,
+.title .hari-info,
+.title .tanggal-hari,
+.title .date,
+.title .date-info{
+  display:none !important;
+}
+
+/* Guru yang ditampilkan pada rentang sesi aktif */
+.teacher-hidden-by-range{
+  display:none !important;
+}
+
+
+/* Nama guru: kecil, formal, dan tetap mudah dibaca */
+.teacher-name{
+  font-size:14px !important;
+  line-height:1.2 !important;
+  font-weight:800 !important;
+  text-align:left !important;
+}
+
+
+/* Hari di tengah atas disembunyikan; jam + hari/tanggal kanan tetap tampil. */
+#day{
+  display:none !important;
+}
+.teacher-name{
+  font-size:14px !important;
+  line-height:1.2 !important;
+}
+
+ 
+.activity-row td{
+  background:#fff3cd !important;
+  border-top:2px solid #e0b84b !important;
+  border-bottom:2px solid #e0b84b !important;
+  text-align:center !important;
+  vertical-align:middle !important;
+  height:54px !important;
+}
+.activity-title{
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:.3px;
+  text-align:center;
+}
+.session-title{
+  line-height:1.2;
+}
+
+
+/* ===== TYPOGRAPHY FINAL ===== */
+.teacher-name{
+  font-family: "Segoe UI", "Inter", "Roboto", Arial, sans-serif !important;
+  font-size:14px !important;
+  font-weight:600 !important;
+  text-transform:none !important;
+  letter-spacing:0 !important;
+  line-height:1.2 !important;
+  white-space:normal !important;
+}
+
+.subject{
+  font-family: "Segoe UI", "Inter", "Roboto", Arial, sans-serif !important;
+  font-size:12px !important;
+  font-weight:600 !important;
+  text-transform:none !important;
+  letter-spacing:0 !important;
+  line-height:1.2 !important;
+  white-space:normal !important;
+}
+
+/* Hari dan tanggal di bawah jam digital:
+   hari sedikit lebih menonjol, tanggal lebih kecil. */
+#clock-day{
+  font-family: "Segoe UI", "Inter", "Roboto", Arial, sans-serif !important;
+  font-size:14px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  text-transform:none !important;
+  letter-spacing:.1px !important;
+}
+
+#clock-date{
+  font-family: "Segoe UI", "Inter", "Roboto", Arial, sans-serif !important;
+  font-size:11px !important;
+  font-weight:500 !important;
+  line-height:1.2 !important;
+  text-transform:none !important;
+  letter-spacing:.1px !important;
+}
+
+/* Jika hari/tanggal berada pada class berbeda, aturan ini tetap membantu. */
+.digital-day{
+  font-family:"Segoe UI","Inter","Roboto",Arial,sans-serif !important;
+  font-size:14px !important;
+  font-weight:600 !important;
+  text-transform:none !important;
+}
+.digital-date{
+  font-family:"Segoe UI","Inter","Roboto",Arial,sans-serif !important;
+  font-size:11px !important;
+  font-weight:500 !important;
+  text-transform:none !important;
+}
+
+
+/* ===== ISI SEL JADWAL: MAPEL > KELAS > RUANG ===== */
+.merged-class{
+  width:100%;
+  min-height:70px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+.cell-mapel{
+  font-family:"Segoe UI","Inter","Roboto",Arial,sans-serif;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.2;
+  margin-bottom:4px;
+  text-transform:none;
+}
+
+.merged-class .lesson{
+  font-family:"Segoe UI","Inter","Roboto",Arial,sans-serif;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.merged-class .room{
+  font-family:"Segoe UI","Inter","Roboto",Arial,sans-serif;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.2;
+  margin-top:3px;
+}
+
+
+/* ===== UKURAN FONT FINAL ===== */
+.teacher-name{
+  font-size:18px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  text-transform:none !important;
+}
+.subject{
+  font-size:14px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  text-transform:none !important;
+}
+.cell-mapel{
+  font-size:15px !important;
+  font-weight:700 !important;
+  line-height:1.2 !important;
+  margin-bottom:5px !important;
+  text-transform:none !important;
+}
+.merged-class .lesson{
+  font-size:15px !important;
+  font-weight:800 !important;
+  line-height:1.2 !important;
+}
+.merged-class .room{
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  margin-top:4px !important;
+}
+.session-title,
+.jam-title,
+.session-number,
+.time-header,
+.data-table thead th{
+  font-size:15px !important;
+}
+.session-time,
+.jam-time,
+.time-range{
+  font-size:11px !important;
+}
+.digital-day,
+.digital-date,
+#clock-day,
+#clock-date,
+.clock-date,
+.date-info{
+  font-size:15px !important;
+}
+
+
+/* Judul kolom informasi */
+.info-header{
+  font-size:15px !important;
+}
+
+</style>
+</head>
+
+<!--
+  FRONTEND V2:
+  Setelah backend GAS V2 dideploy, isi BACKEND_URL di JavaScript
+  dengan URL /exec backend tersebut.
+-->
+<body>
+<div class="app">
+<header class="top">
+<div class="school"><img id="logo" class="logo" alt="Logo"><div style="min-width:0"><div id="schoolName" class="school-name">SMK WIDYA DIRGANTARA</div><div id="tagline" class="tagline">DISIPLIN • KOMPETEN • BERKARAKTER</div></div></div>
+<div class="title"><h1><span>Informasi Jadwal</span><br>Mengajar Guru</h1><p id="day">MEMUAT...</p></div>
+<div class="clock"><div id="clockTime" class="clock-time">00:00:00</div><div id="clockDate" class="clock-date">-</div></div>
+</header>
+<main class="content"><section class="board"><div id="fixedHead" class="fixed-head"></div><div id="scrollArea" class="scroll-area"><div id="track" class="track"></div></div></section></main>
+<footer class="footer"><div class="footer-badge">INFORMASI JADWAL</div><div class="footer-message">Disiplin waktu • Siap mengajar • Pelayanan terbaik kepada siswa</div><div class="footer-update"><strong id="updateStatus">Memuat...</strong>Pembaruan otomatis</div></footer>
+</div>
+<script>
+let DATA=null,animationId=null,scrolling=true,scrollStart=0,cycleHeight=0;
+let tampilanAktif='A';
+
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+function clock(){
+  const d=new Date();
+  document.getElementById('clockTime').textContent=
+    d.toLocaleTimeString('id-ID',{
+      hour:'2-digit',
+      minute:'2-digit',
+      second:'2-digit',
+      hour12:false
+    });
+  document.getElementById('clockDate').textContent=
+    d.toLocaleDateString('id-ID',{
+      weekday:'long',
+      day:'2-digit',
+      month:'long',
+      year:'numeric'
+    });
+}
+clock();
+setInterval(clock,1000);
+
+/*
+ * =====================================================
+ * FRONTEND V2
+ * DATA DIAMBIL DARI GAS BACKEND MELALUI JSONP
+ * =====================================================
+ *
+ * Ganti URL di bawah dengan URL deployment backend V2.
+ */
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwE6C080xvBDbXxSXIgqQdMgbZTvmQASS767ccLIS2y5dGnh0JH0uPWhfrS26Q88UKZKQ/exec';
+
+function getData(){
+  return new Promise((resolve,reject)=>{
+    const callbackName =
+      'jadwalCallback_' + Date.now() + '_' +
+      Math.random().toString(36).slice(2);
+
+    const script = document.createElement('script');
+    let selesai = false;
+
+    const bersihkan = ()=>{
+      if(script.parentNode) script.parentNode.removeChild(script);
+      try{ delete window[callbackName]; }catch(e){}
+    };
+
+    const timer = setTimeout(()=>{
+      if(selesai) return;
+      selesai = true;
+      bersihkan();
+      reject(new Error('Backend jadwal tidak merespons.'));
+    }, 15000);
+
+    window[callbackName] = payload=>{
+      if(selesai) return;
+      selesai = true;
+      clearTimeout(timer);
+      bersihkan();
+
+      if(!payload || payload.ok !== true){
+        reject(new Error(payload && payload.message
+          ? payload.message
+          : 'Data backend tidak valid.'));
+        return;
+      }
+
+      resolve(payload.data);
+    };
+
+    script.onerror = ()=>{
+      if(selesai) return;
+      selesai = true;
+      clearTimeout(timer);
+      bersihkan();
+      reject(new Error('Tidak dapat terhubung ke backend Google Apps Script.'));
+    };
+
+    script.src =
+      BACKEND_URL +
+      (BACKEND_URL.indexOf('?') >= 0 ? '&' : '?') +
+      'action=display&callback=' +
+      encodeURIComponent(callbackName) +
+      '&_=' + Date.now();
+
+    document.head.appendChild(script);
+  });
+}
+
+function getSessionTime(sesi){
+  const sessions = DATA && Array.isArray(DATA.sessions) ? DATA.sessions : [];
+  const item = sessions.find(x => Number(x.no) === Number(sesi));
+
+  if(!item) return '';
+
+  const mulai = item.mulai || '';
+  const selesai = item.selesai || '';
+
+  if(mulai || selesai){
+    return esc(mulai) + (selesai ? ' – ' + esc(selesai) : '');
+  }
+
+  return '';
+}
+
+function getKegiatanSesi(sesi){
+  const sessions = DATA && Array.isArray(DATA.sessions) ? DATA.sessions : [];
+  const item = sessions.find(x => Number(x.no) === Number(sesi));
+  return item && Array.isArray(item.kegiatan) ? item.kegiatan : [];
+}
+
+/* =====================================================
+   MENENTUKAN JAM MULAI SESI DARI TEKS JAM
+   Contoh:
+   "13:10 – 13:50" -> 13:10
+   "13.10 – 13.50" -> 13:10
+   ===================================================== */
+function waktuKeMenit(waktu){
+  if(!waktu) return null;
+
+  const teks=String(waktu).replace('.',':');
+  const match=teks.match(/(\d{1,2}):(\d{2})/);
+
+  if(!match) return null;
+
+  const jam=Number(match[1]);
+  const menit=Number(match[2]);
+
+  if(jam<0 || jam>23 || menit<0 || menit>59) return null;
+
+  return jam*60+menit;
+}
+
+/* =====================================================
+   ATURAN TAMPILAN
+
+   A = JAM 1  sampai JAM 9
+   B = JAM 10 sampai JAM 17
+
+   Pergantian mengikuti JAM MULAI SESI 10.
+   Tidak ada batas waktu yang ditulis manual.
+   ===================================================== */
+function tentukanTampilan(){
+  if(!DATA) return 'A';
+
+  const waktuJam10=getSessionTime(10);
+  const mulaiJam10=waktuKeMenit(waktuJam10);
+
+  if(mulaiJam10===null){
+    return 'A';
+  }
+
+  const sekarang=new Date();
+  const menitSekarang=
+    sekarang.getHours()*60+
+    sekarang.getMinutes();
+
+  return menitSekarang>=mulaiJam10 ? 'B' : 'A';
+}
+
+function getRentangSesi(){
+  const tampilan=tentukanTampilan();
+
+  if(tampilan==='A'){
+    return {mulai:1,selesai:9};
+  }
+
+  return {mulai:10,selesai:17};
+}
+
+function renderHeader(){
+  const rentang=getRentangSesi();
+
+  let h=
+    '<table><thead><tr>' +
+    '<th>NAMA GURU</th>' +
+    '<th>FOTO</th>' +
+    '<th>MATA PELAJARAN</th>';
+
+  for(let i=rentang.mulai;i<=rentang.selesai;i++){
+    const waktu=getSessionTime(i);
+
+    const kegiatan = getKegiatanSesi(i);
+    const judulSesi = kegiatan.length ? kegiatan.join(' • ') : 'JAM '+i;
+
+    h+=
+      '<th>' +
+        '<div class="session-title">'+esc(judulSesi)+'</div>' +
+        '<span class="session-time">'+waktu+'</span>' +
+      '</th>';
+  }
+
+  h+='</tr></thead></table>';
+
+  document.getElementById('fixedHead').innerHTML=h;
+}
+
+const warnaKelasRuang=[
+  '#DCEEFF','#DFF4E5','#FFF0CC','#EAE1FF',
+  '#DDF5F5','#FFE1E8','#E8EDF3','#E6F3E8',
+  '#F4E7D3','#E1E8FF','#E8F0D8','#F3E2F0'
+];
+const petaWarnaKelasRuang={};
+
+function kunciKelasRuang(item){
+  return String(item?.kelas||'').trim().toUpperCase()+'|'+
+         String(item?.ruang||'').trim().toUpperCase();
+}
+
+function warnaUntukKelasRuang(item){
+  const key=kunciKelasRuang(item);
+  if(!key || key==='|') return '#F4F6F8';
+  if(!(key in petaWarnaKelasRuang)){
+    const n=Object.keys(petaWarnaKelasRuang).length;
+    petaWarnaKelasRuang[key]=warnaKelasRuang[n%warnaKelasRuang.length];
+  }
+  return petaWarnaKelasRuang[key];
+}
+
+function isiJadwal(item){
+  if(!item){
+    return '<div class="empty">—</div>';
+  }
+
+  const mapel = esc(item.mapel || item.mataPelajaran || '-');
+  const kelas = esc(item.kelas || '-');
+  const ruang = esc(item.ruang || '-');
+
+  return (
+    '<div class="merged-class">' +
+      '<div class="cell-mapel">' + mapel + '</div>' +
+      '<div class="lesson">' + kelas + '</div>' +
+      '<div class="room">' + ruang + '</div>' +
+    '</div>'
+  );
+}
+
+function itemSesi(guru,sesi){
+  const items=guru.sesi&&guru.sesi[sesi]?guru.sesi[sesi]:[];
+  if(!items||!items.length) return null;
+  if(items.length!==1) return {multi:true,items:items};
+  return items[0];
+}
+
+
+/* ===== DATA GURU DARI APPS SCRIPT =====
+   Apps Script mengirim DATA.teachers.
+   Setiap guru sudah menjadi satu objek guru sendiri.
+*/
+function normalisasiGuruTV(g){
+  return {
+    namaGuru: g.nama || '',
+    foto: g.foto || '',
+    mataPelajaran: Array.isArray(g.mapel) ? g.mapel : (g.mapel ? [g.mapel] : []),
+    sesi: g.sesi || {}
+  };
+}
+
+function semuaGuruTV(){
+  if(Array.isArray(DATA.teachers)){
+    return DATA.teachers.map(normalisasiGuruTV);
+  }
+
+  /* Kompatibilitas dengan data lama jika masih ada. */
+  if(Array.isArray(DATA.guru)){
+    return DATA.guru;
+  }
+
+  return [];
+}
+
+function guruAdaJadwalPadaRentang(guru, mulai, selesai){
+  for(let s = mulai; s <= selesai; s++){
+    const items = guru.sesi && guru.sesi[s] ? guru.sesi[s] : [];
+    if(items && items.length) return true;
+  }
+  return false;
+}
+
+function renderBody(){
+  const semuaGuru = semuaGuruTV();
+  const rentang = getRentangSesi();
+
+  /*
+    Hanya tampilkan guru yang memiliki minimal satu jadwal
+    pada rentang sesi yang sedang aktif.
+  */
+  const teachers = semuaGuru.filter(g =>
+    guruAdaJadwalPadaRentang(g, rentang.mulai, rentang.selesai)
+  );
+
+  if(!teachers.length){
+    document.getElementById('track').innerHTML =
+      '<div class="empty" style="padding:50px;text-align:center">' +
+      'Tidak ada guru yang mengajar pada rentang sesi ini.' +
+      '</div>';
+    return;
+  }
+
+  let h='<table class="data-table"><tbody>';
+
+  /*
+    Kegiatan khusus tetap ditampilkan walaupun tidak ada guru.
+  */
+  for(let s=rentang.mulai; s<=rentang.selesai; s++){
+    const kegiatan = getKegiatanSesi(s);
+    if(!kegiatan.length) continue;
+
+    h += '<tr class="activity-row">' +
+      '<td colspan="'+(3 + (rentang.selesai-rentang.mulai+1))+'">' +
+        '<div class="activity-title">'+
+          esc(kegiatan.join(' • '))+
+        '</div>' +
+      '</td>' +
+    '</tr>';
+  }
+
+  teachers.forEach(g=>{
+    h+='<tr>'+
+      '<td><div class="teacher-name">'+esc(g.namaGuru)+'</div></td>'+
+      '<td>'+
+        (g.foto
+          ? '<img class="teacher-photo" src="'+esc(g.foto)+
+            '" onerror="this.outerHTML=\'<div class=no-photo>👤</div>\'">'
+          : '<div class="no-photo">👤</div>')+
+      '</td>'+
+      '<td><div class="subject">'+
+        esc(
+          Array.isArray(g.mataPelajaran)
+            ? g.mataPelajaran.join(' / ')
+            : String(g.mataPelajaran || '-')
+        )+
+      '</div></td>';
+
+    let s=rentang.mulai;
+
+    while(s<=rentang.selesai){
+      const item=itemSesi(g,s);
+
+      if(!item){
+        h+='<td class="schedule-empty"><div class="empty">—</div></td>';
+        s++;
+        continue;
+      }
+
+      if(item.multi){
+        h+='<td class="schedule-cell multi-schedule">'+
+          item.items.map(x=>
+            '<div class="cell-mapel">'+esc(x.mapel||x.mataPelajaran||'-')+'</div>'+
+            '<div class="lesson">'+esc(x.kelas||'-')+'</div>'+
+            '<div class="room">'+esc(x.ruang||'-')+'</div>'
+          ).join('<div class="schedule-gap"></div>')+
+          '</td>';
+        s++;
+        continue;
+      }
+
+      let panjang=1;
+
+      while(s+panjang<=rentang.selesai){
+        const next=itemSesi(g,s+panjang);
+        if(!next || next.multi) break;
+        if(kunciKelasRuang(item)!==kunciKelasRuang(next)) break;
+        panjang++;
+      }
+
+      h+='<td class="schedule-cell merged-schedule" colspan="'+panjang+
+        '" style="background:'+warnaUntukKelasRuang(item)+'">'+
+        isiJadwal(item)+'</td>';
+
+      s+=panjang;
+    }
+
+    h+='</tr>';
+  });
+
+  h+='</tbody></table>';
+
+  /*
+    Duplikasi tabel tetap dipertahankan untuk mekanisme scrolling
+    yang sudah berjalan sebelumnya.
+  */
+  document.getElementById('track').innerHTML=h+h;
+}
+
+function startScroll(){
+  if(animationId) cancelAnimationFrame(animationId);
+
+  const area=document.getElementById('scrollArea');
+  const tables=document.getElementById('track').querySelectorAll('table');
+
+  if(tables.length<2) return;
+
+  cycleHeight=tables[0].offsetHeight;
+
+  if(cycleHeight<=area.clientHeight){
+    document.getElementById('track').style.transform='translateY(0)';
+    return;
+  }
+
+  scrollStart=performance.now();
+  const speed=5;
+
+  function step(now){
+    if(scrolling){
+      const y=((now-scrollStart)/1000*speed)%cycleHeight;
+      document.getElementById('track').style.transform=
+        'translateY(-'+y+'px)';
+    }
+
+    animationId=requestAnimationFrame(step);
+  }
+
+  animationId=requestAnimationFrame(step);
+}
+
+/* =====================================================
+   MEMERIKSA PERGANTIAN TAMPILAN BERDASARKAN JAM NYATA
+   Diperiksa setiap 5 detik tanpa mengambil data baru.
+   ===================================================== */
+function periksaPergantianTampilan(){
+  if(!DATA) return;
+
+  const tampilanBaru=tentukanTampilan();
+
+  if(tampilanBaru!==tampilanAktif){
+    tampilanAktif=tampilanBaru;
+
+    renderHeader();
+    renderBody();
+
+    document.getElementById('track').style.transform='translateY(0)';
+    requestAnimationFrame(startScroll);
+  }
+}
+
+async function loadDisplay(){
+  try{
+    DATA=await getData();
+
+    document.getElementById('schoolName').textContent=
+      DATA.sekolah||'SMK WIDYA DIRGANTARA';
+
+    document.getElementById('tagline').textContent=
+      DATA.tagline||'DISIPLIN • KOMPETEN • BERKARAKTER';
+
+    document.getElementById('day').textContent=
+      String(DATA.hari||'').toUpperCase();
+
+    if(DATA.logoUrl){
+      document.getElementById('logo').src=DATA.logoUrl;
+    }
+
+    /* Pastikan status awal mengikuti jam nyata. */
+    tampilanAktif=tentukanTampilan();
+
+    renderHeader();
+    renderBody();
+
+    document.getElementById('updateStatus').textContent=
+      'Terakhir '+
+      new Date().toLocaleTimeString('id-ID',{
+        hour:'2-digit',
+        minute:'2-digit',
+        second:'2-digit'
+      });
+
+    requestAnimationFrame(startScroll);
+
+  }catch(e){
+    document.getElementById('track').innerHTML=
+      '<div style="padding:50px;text-align:center;color:#a22;font-weight:900">' +
+      'Gagal membaca data jadwal<br>' +
+      '<small>'+esc(e.message||e)+'</small></div>';
+  }
+}
+
+document.getElementById('scrollArea').addEventListener(
+  'mouseenter',
+  ()=>scrolling=false
+);
+
+document.getElementById('scrollArea').addEventListener(
+  'mouseleave',
+  ()=>{
+    scrolling=true;
+    scrollStart=performance.now();
+  }
+);
+
+window.addEventListener(
+  'resize',
+  ()=>requestAnimationFrame(startScroll)
+);
+
+/* Ambil data awal. */
+loadDisplay();
+
+/* Periksa pergantian A <-> B setiap 5 detik. */
+setInterval(periksaPergantianTampilan,5000);
+
+/* Ambil data jadwal terbaru setiap 60 detik. */
+setInterval(loadDisplay,60000);
+</script>
+</body>
+</html>
