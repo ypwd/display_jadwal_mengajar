@@ -276,21 +276,12 @@
 .date-info{
   font-size:15px !important;
 }
-
-
-/* Judul kolom informasi */
-.info-header{
-  font-size:15px !important;
+.info-header {
+  font-size: 15px !important;
 }
 
 </style>
 </head>
-
-<!--
-  FRONTEND V2:
-  Setelah backend GAS V2 dideploy, isi BACKEND_URL di JavaScript
-  dengan URL /exec backend tersebut.
--->
 <body>
 <div class="app">
 <header class="top">
@@ -329,70 +320,63 @@ function clock(){
 clock();
 setInterval(clock,1000);
 
-/*
- * =====================================================
- * FRONTEND V2
- * DATA DIAMBIL DARI GAS BACKEND MELALUI JSONP
- * =====================================================
- *
- * Ganti URL di bawah dengan URL deployment backend V2.
- */
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzD1eyWUo2lbgloKBFhikjg_SpqyDraJQf9kg58als5lvvNU1YZlbzlrN1Sy_NHixxo/exec';
+/* =====================================================
+   KONFIGURASI BACKEND API
+   Ganti nilai API_URL dengan URL Web App Google Apps Script
+   yang berakhiran /exec.
+   ===================================================== */
 
-function getData(){
-  return new Promise((resolve,reject)=>{
-    const callbackName =
-      'jadwalCallback_' + Date.now() + '_' +
-      Math.random().toString(36).slice(2);
+const API_URL = 'https://script.google.com/macros/s/AKfycbw1QSfAg2HZOeJr6jX2ZRlMgMsLsyK9kRYDTgTXFhIt22B_3V-dRd8r345kxzxk2MXW/exec';
 
-    const script = document.createElement('script');
-    let selesai = false;
+/* =====================================================
+   AMBIL DATA DARI GOOGLE APPS SCRIPT API
+   ===================================================== */
 
-    const bersihkan = ()=>{
-      if(script.parentNode) script.parentNode.removeChild(script);
-      try{ delete window[callbackName]; }catch(e){}
-    };
+async function getData(){
+  if(
+    !API_URL ||
+    API_URL === 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI'
+  ){
+    throw new Error(
+      'API_URL belum diisi. Masukkan URL Web App Apps Script yang berakhiran /exec.'
+    );
+  }
 
-    const timer = setTimeout(()=>{
-      if(selesai) return;
-      selesai = true;
-      bersihkan();
-      reject(new Error('Backend jadwal tidak merespons.'));
-    }, 15000);
+  // Parameter waktu membantu mencegah penggunaan cache data lama.
+  const separator = API_URL.includes('?') ? '&' : '?';
+  const url = API_URL + separator + '_=' + Date.now();
 
-    window[callbackName] = payload=>{
-      if(selesai) return;
-      selesai = true;
-      clearTimeout(timer);
-      bersihkan();
-
-      if(!payload || payload.ok !== true){
-        reject(new Error(payload && payload.message
-          ? payload.message
-          : 'Data backend tidak valid.'));
-        return;
-      }
-
-      resolve(payload.data);
-    };
-
-    script.onerror = ()=>{
-      if(selesai) return;
-      selesai = true;
-      clearTimeout(timer);
-      bersihkan();
-      reject(new Error('Tidak dapat terhubung ke backend Google Apps Script.'));
-    };
-
-    script.src =
-      BACKEND_URL +
-      (BACKEND_URL.indexOf('?') >= 0 ? '&' : '?') +
-      'action=display&callback=' +
-      encodeURIComponent(callbackName) +
-      '&_=' + Date.now();
-
-    document.head.appendChild(script);
+  const response = await fetch(url, {
+    method: 'GET',
+    redirect: 'follow',
+    cache: 'no-store'
   });
+
+  if(!response.ok){
+    throw new Error(
+      'Gagal mengambil data dari API. HTTP ' + response.status
+    );
+  }
+
+  const result = await response.json();
+
+  // Sesuai struktur Kode_API_GitHub.gs:
+  // { success: true, updatedAt: '...', data: { ... } }
+  if(!result || result.success !== true){
+    throw new Error(
+      result && result.error
+        ? result.error
+        : 'Backend mengembalikan respons yang tidak valid.'
+    );
+  }
+
+  if(!result.data || typeof result.data !== 'object'){
+    throw new Error('Data jadwal tidak ditemukan dalam respons API.');
+  }
+
+  // Mengembalikan struktur lama agar seluruh fungsi frontend
+  // tetap memakai DATA.sekolah, DATA.sessions, DATA.teachers, dll.
+  return result.data;
 }
 
 function getSessionTime(sesi){
@@ -481,9 +465,9 @@ function renderHeader(){
 
   let h=
     '<table><thead><tr>' +
-    '<th>NAMA GURU</th>' +
-    '<th>FOTO</th>' +
-    '<th>MATA PELAJARAN</th>';
+    '<th class="info-header">NAMA GURU</th>' +
+    '<th class="info-header">FOTO</th>' +
+    '<th class="info-header">MATA PELAJARAN</th>';
 
   for(let i=rentang.mulai;i<=rentang.selesai;i++){
     const waktu=getSessionTime(i);
@@ -688,38 +672,87 @@ function renderBody(){
     Duplikasi tabel tetap dipertahankan untuk mekanisme scrolling
     yang sudah berjalan sebelumnya.
   */
-  document.getElementById('track').innerHTML=h+h;
+  /*
+    Gunakan satu daftar saja. Marquee akan berjalan sampai seluruh
+    konten benar-benar melewati area tampilan, lalu kembali ke awal.
+  */
+  document.getElementById('track').innerHTML=h;
 }
 
 function startScroll(){
-  if(animationId) cancelAnimationFrame(animationId);
+  if(animationId){
+    cancelAnimationFrame(animationId);
+    animationId=null;
+  }
 
   const area=document.getElementById('scrollArea');
-  const tables=document.getElementById('track').querySelectorAll('table');
+  const track=document.getElementById('track');
 
-  if(tables.length<2) return;
+  track.style.transform='translateY(0)';
 
-  cycleHeight=tables[0].offsetHeight;
+  /*
+    Tunggu browser menyelesaikan layout. Setelah itu gunakan tinggi
+    SELURUH isi track, bukan offsetHeight tabel.
+  */
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
 
-  if(cycleHeight<=area.clientHeight){
-    document.getElementById('track').style.transform='translateY(0)';
-    return;
-  }
+      const maxScroll=Math.max(
+        0,
+        track.scrollHeight-area.clientHeight
+      );
 
-  scrollStart=performance.now();
-  const speed=5;
+      if(maxScroll<=0){
+        track.style.transform='translateY(0)';
+        return;
+      }
 
-  function step(now){
-    if(scrolling){
-      const y=((now-scrollStart)/1000*speed)%cycleHeight;
-      document.getElementById('track').style.transform=
-        'translateY(-'+y+'px)';
-    }
+      scrollStart=performance.now();
 
-    animationId=requestAnimationFrame(step);
-  }
+      const speed=5;
+      const pauseAtEnd=1200; // jeda 1,2 detik setelah guru terakhir
 
-  animationId=requestAnimationFrame(step);
+      function step(now){
+        if(!scrolling){
+          animationId=requestAnimationFrame(step);
+          return;
+        }
+
+        const elapsed=now-scrollStart;
+        const distance=(elapsed/1000)*speed;
+
+        /*
+          Fase 1: bergerak dari guru pertama sampai guru terakhir.
+        */
+        if(distance<maxScroll){
+          track.style.transform='translateY(-'+distance+'px)';
+          animationId=requestAnimationFrame(step);
+          return;
+        }
+
+        /*
+          Fase 2: berhenti sebentar di bagian paling bawah agar
+          guru terakhir benar-benar terlihat.
+        */
+        track.style.transform='translateY(-'+maxScroll+'px)';
+
+        if(distance<maxScroll+(speed*pauseAtEnd/1000)){
+          animationId=requestAnimationFrame(step);
+          return;
+        }
+
+        /*
+          Setelah seluruh daftar selesai, kembali ke guru pertama
+          dan mulai satu putaran baru.
+        */
+        track.style.transform='translateY(0)';
+        scrollStart=now;
+        animationId=requestAnimationFrame(step);
+      }
+
+      animationId=requestAnimationFrame(step);
+    });
+  });
 }
 
 /* =====================================================
@@ -807,8 +840,7 @@ loadDisplay();
 /* Periksa pergantian A <-> B setiap 5 detik. */
 setInterval(periksaPergantianTampilan,5000);
 
-/* Ambil data jadwal terbaru setiap 60 detik. */
-setInterval(loadDisplay,60000);
+
 </script>
 </body>
 </html>
